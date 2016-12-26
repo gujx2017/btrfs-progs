@@ -29,6 +29,7 @@
 #include "sizes.h"
 #include "messages.h"
 #include "ioctl.h"
+#include "kerncompat.h"
 
 #define BTRFS_SCAN_MOUNTED	(1ULL << 0)
 #define BTRFS_SCAN_LBLKID	(1ULL << 1)
@@ -76,6 +77,10 @@ struct seen_fsid {
 	DIR *dirstream;
 	int fd;
 };
+static inline int calculate_bitmap_len(int nsectors)
+{
+	return (DIV_ROUND_UP(nsectors, BITS_PER_LONG) * sizeof(long));
+}
 
 int btrfs_make_root_dir(struct btrfs_trans_handle *trans,
 			struct btrfs_root *root, u64 objectid);
