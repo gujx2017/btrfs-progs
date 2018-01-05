@@ -322,6 +322,10 @@ test-cli: btrfs
 	@echo "    [TEST]   cli-tests.sh"
 	$(Q)bash tests/cli-tests.sh
 
+test-scrub: btrfs mkfs.btrfs
+	@echo "    [TEST]   scrub-tests.sh"
+	$(Q)bash tests/scrub-tests.sh
+
 test-clean:
 	@echo "Cleaning tests"
 	$(Q)bash tests/clean-tests.sh
@@ -332,7 +336,7 @@ test-inst: all
 		$(MAKE) $(MAKEOPTS) DESTDIR=$$tmpdest install && \
 		$(RM) -rf -- $$tmpdest
 
-test: test-fsck test-mkfs test-convert test-misc test-fuzz test-cli
+test: test-fsck test-mkfs test-convert test-misc test-fuzz test-cli test-scrub
 
 #
 # NOTE: For static compiles, you need to have all the required libs
