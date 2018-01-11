@@ -1160,7 +1160,7 @@ static int scan_extents(struct btrfs_fs_info *info,
 		fprintf(stderr, "ERROR: Couldn't search slot: %d\n", ret);
 		goto out;
 	}
-	path.reada = 1;
+	path.reada = READA_FORWARD;
 
 	while (1) {
 		leaf = path.nodes[0];

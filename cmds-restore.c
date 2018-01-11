@@ -258,7 +258,7 @@ again:
 			continue;
 		}
 
-		if (path->reada)
+		if (path->reada != READA_NONE)
 			reada_for_search(root, path, level, slot, 0);
 
 		next = read_node_slot(fs_info, c, slot);
@@ -275,7 +275,7 @@ again:
 		path->slots[level] = 0;
 		if (!level)
 			break;
-		if (path->reada)
+		if (path->reada != READA_NONE)
 			reada_for_search(root, path, level, 0, 0);
 		next = read_node_slot(fs_info, next, 0);
 		if (!extent_buffer_uptodate(next))

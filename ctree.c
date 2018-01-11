@@ -974,7 +974,6 @@ void reada_for_search(struct btrfs_root *root, struct btrfs_path *path,
 	u64 search;
 	u64 target;
 	u64 nread = 0;
-	int direction = path->reada;
 	struct extent_buffer *eb;
 	u32 nr;
 	u32 nscan = 0;
@@ -998,16 +997,16 @@ void reada_for_search(struct btrfs_root *root, struct btrfs_path *path,
 	nritems = btrfs_header_nritems(node);
 	nr = slot;
 	while(1) {
-		if (direction < 0) {
+		if (path->reada == READA_BACK) {
 			if (nr == 0)
 				break;
 			nr--;
-		} else if (direction > 0) {
+		} else if (path->reada == READA_FORWARD) {
 			nr++;
 			if (nr >= nritems)
 				break;
 		}
-		if (path->reada < 0 && objectid) {
+		if (path->reada == READA_BACK && objectid) {
 			btrfs_node_key(node, &disk_key, nr);
 			if (btrfs_disk_key_objectid(&disk_key) != objectid)
 				break;
@@ -1156,7 +1155,7 @@ again:
 			if (level == lowest_level)
 				break;
 
-			if (should_reada)
+			if (should_reada != READA_NONE)
 				reada_for_search(root, p, level, slot,
 						 key->objectid);
 
@@ -2837,7 +2836,7 @@ int btrfs_next_leaf(struct btrfs_root *root, struct btrfs_path *path)
 			continue;
 		}
 
-		if (path->reada)
+		if (path->reada != READA_NONE)
 			reada_for_search(root, path, level, slot, 0);
 
 		next = read_node_slot(fs_info, c, slot);
@@ -2854,7 +2853,7 @@ int btrfs_next_leaf(struct btrfs_root *root, struct btrfs_path *path)
 		path->slots[level] = 0;
 		if (!level)
 			break;
-		if (path->reada)
+		if (path->reada != READA_NONE)
 			reada_for_search(root, path, level, 0, 0);
 		next = read_node_slot(fs_info, next, 0);
 		if (!extent_buffer_uptodate(next))
