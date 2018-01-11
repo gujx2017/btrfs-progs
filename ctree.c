@@ -972,8 +972,7 @@ void reada_for_search(struct btrfs_root *root, struct btrfs_path *path,
 	struct btrfs_disk_key disk_key;
 	u32 nritems;
 	u64 search;
-	u64 lowest_read;
-	u64 highest_read;
+	u64 target;
 	u64 nread = 0;
 	int direction = path->reada;
 	struct extent_buffer *eb;
@@ -994,8 +993,7 @@ void reada_for_search(struct btrfs_root *root, struct btrfs_path *path,
 		return;
 	}
 
-	highest_read = search;
-	lowest_read = search;
+	target = search;
 
 	nritems = btrfs_header_nritems(node);
 	nr = slot;
@@ -1015,23 +1013,15 @@ void reada_for_search(struct btrfs_root *root, struct btrfs_path *path,
 				break;
 		}
 		search = btrfs_node_blockptr(node, nr);
-		if ((search >= lowest_read && search <= highest_read) ||
-		    (search < lowest_read && lowest_read - search <= 32768) ||
-		    (search > highest_read && search - highest_read <= 32768)) {
+		if ((search <= target && target - search <= 65536) ||
+		    (search > target && search - target <= 65536)) {
 			readahead_tree_block(fs_info, search,
 				     btrfs_node_ptr_generation(node, nr));
 			nread += fs_info->nodesize;
 		}
 		nscan++;
-		if (path->reada < 2 && (nread > SZ_256K || nscan > 32))
+		if ((nread > 65536 || nscan > 32))
 			break;
-		if(nread > SZ_1M || nscan > 128)
-			break;
-
-		if (search < lowest_read)
-			lowest_read = search;
-		if (search > highest_read)
-			highest_read = search;
 	}
 }
 
