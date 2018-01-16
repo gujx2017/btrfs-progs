@@ -438,12 +438,6 @@ out:
 	return ret;
 }
 
-u64 btrfs_min_dev_size(u32 nodesize)
-{
-	return 2 * (BTRFS_MKFS_SYSTEM_GROUP_SIZE +
-		    btrfs_min_global_blk_rsv_size(nodesize));
-}
-
 /*
  * Btrfs minimum size calculation is complicated, it should include at least:
  * 1. system group size
@@ -454,9 +448,70 @@ u64 btrfs_min_dev_size(u32 nodesize)
  * To avoid the overkill calculation, (system group + global block rsv) * 2
  * for *EACH* device should be good enough.
  */
-u64 btrfs_min_global_blk_rsv_size(u32 nodesize)
+static u64 btrfs_min_global_blk_rsv_size(u32 nodesize)
 {
 	return (u64)nodesize << 10;
+}
+
+u64 btrfs_min_dev_size(u32 nodesize, int mixed, u64 meta_profile,
+		       u64 data_profile)
+{
+	u64 reserved = 0;
+	u64 meta_size;
+	u64 data_size;
+
+	if (mixed)
+		return 2 * (BTRFS_MKFS_SYSTEM_GROUP_SIZE +
+			    btrfs_min_global_blk_rsv_size(nodesize));
+
+	/*
+	 * Minimal size calculation is complex due to several factors:
+	 * 1) Temporary chunk reuse
+	 *    If specified chunk profile is SINGLE, we can reuse
+	 *    temporary chunks, no need to allocate new chunks.
+	 *
+	 * 2) Different minimal chunk size for different profiles:
+	 *    For initial sys chunk, chunk size is fixed to 4M.
+	 *    For single profile, minimal chunk size is 8M for all.
+	 *    For other profiles, minimal chunk and stripe size ranges from 8M
+	 *    to 64M.
+	 *
+	 * To calculate it a little easier, here we assume we don't reuse any
+	 * temporary chunk, and calculate the size completely by ourselves.
+	 *
+	 * Temporary chunks sizes are always fixed:
+	 * One initial sys chunk, one SINGLE meta, and one SINGLE data.
+	 * The latter two are all 8M, accroding to @calc_size of
+	 * btrfs_alloc_chunk().
+	 */
+	reserved += BTRFS_MKFS_SYSTEM_GROUP_SIZE + SZ_8M * 2;
+
+	/*
+	 * For real chunks, we need to select different sizes:
+	 * For SINGLE, it's still fixed to 8M (@calc_size).
+	 * For other profiles, refer to max(@min_stripe_size, @calc_size).
+	 *
+	 * And use the stripe size to calculate its physical used space.
+	 */
+	if (meta_profile & BTRFS_BLOCK_GROUP_PROFILE_MASK)
+		meta_size = SZ_8M + SZ_32M;
+	else
+		meta_size = SZ_8M + SZ_8M;
+	/* For DUP/metadata,  2 stripes on one disk */
+	if (meta_profile & BTRFS_BLOCK_GROUP_DUP)
+		meta_size *= 2;
+	reserved += meta_size;
+
+	if (data_profile & BTRFS_BLOCK_GROUP_PROFILE_MASK)
+		data_size = SZ_64M;
+	else
+		data_size = SZ_8M;
+	/* For DUP/data,  2 stripes on one disk */
+	if (data_profile & BTRFS_BLOCK_GROUP_DUP)
+		data_size *= 2;
+	reserved += data_size;
+
+	return reserved;
 }
 
 #define isoctal(c)	(((c) & ~7) == '0')
@@ -632,23 +687,9 @@ int test_dev_for_mkfs(const char *file, int force_overwrite)
 		error("%s is a swap device", file);
 		return 1;
 	}
-	if (!force_overwrite) {
-		if (check_overwrite(file)) {
-			error("use the -f option to force overwrite of %s",
-					file);
-			return 1;
-		}
-	}
-	ret = check_mounted(file);
-	if (ret < 0) {
-		error("cannot check mount status of %s: %s", file,
-				strerror(-ret));
+	ret = test_status_for_mkfs(file, force_overwrite);
+	if (ret)
 		return 1;
-	}
-	if (ret == 1) {
-		error("%s is mounted", file);
-		return 1;
-	}
 	/* check if the device is busy */
 	fd = open(file, O_RDWR|O_EXCL);
 	if (fd < 0) {
@@ -666,6 +707,34 @@ int test_dev_for_mkfs(const char *file, int force_overwrite)
 		return 1;
 	}
 	close(fd);
+	return 0;
+}
+
+/*
+ * check if the file (device) is formatted or mounted
+ */
+int test_status_for_mkfs(const char *file, bool force_overwrite)
+{
+	int ret;
+
+	if (!force_overwrite) {
+		if (check_overwrite(file)) {
+			error("use the -f option to force overwrite of %s",
+					file);
+			return 1;
+		}
+	}
+	ret = check_mounted(file);
+	if (ret < 0) {
+		error("cannot check mount status of %s: %s", file,
+				strerror(-ret));
+		return 1;
+	}
+	if (ret == 1) {
+		error("%s is mounted", file);
+		return 1;
+	}
+
 	return 0;
 }
 

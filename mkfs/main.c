@@ -1161,18 +1161,25 @@ static int zero_output_file(int out_fd, u64 size)
 {
 	int loop_num;
 	u64 location = 0;
-	char buf[4096];
+	char buf[SZ_4K];
 	int ret = 0, i;
 	ssize_t written;
 
-	memset(buf, 0, 4096);
-	loop_num = size / 4096;
+	memset(buf, 0, SZ_4K);
+
+	/* Only zero out the first 1M */
+	loop_num = SZ_1M / SZ_4K;
 	for (i = 0; i < loop_num; i++) {
-		written = pwrite64(out_fd, buf, 4096, location);
-		if (written != 4096)
+		written = pwrite64(out_fd, buf, SZ_4K, location);
+		if (written != SZ_4K)
 			ret = -EIO;
-		location += 4096;
+		location += SZ_4K;
 	}
+
+	/* Then enlarge the file to size */
+	written = pwrite64(out_fd, buf, 1, size - 1);
+	if (written < 1)
+		ret = -EIO;
 	return ret;
 }
 
@@ -1598,8 +1605,12 @@ int main(int argc, char **argv)
 	while (dev_cnt-- > 0) {
 		file = argv[optind++];
 		if (is_block_device(file) == 1)
-			if (test_dev_for_mkfs(file, force_overwrite))
-				goto error;
+			ret = test_dev_for_mkfs(file, force_overwrite);
+		else
+			ret = test_status_for_mkfs(file, force_overwrite);
+
+		if (ret)
+			goto error;
 	}
 
 	optind = saved_optind;
@@ -1664,7 +1675,8 @@ int main(int argc, char **argv)
 		goto error;
 	}
 
-	min_dev_size = btrfs_min_dev_size(nodesize);
+	min_dev_size = btrfs_min_dev_size(nodesize, mixed, metadata_profile,
+					  data_profile);
 	/* Check device/block_count after the nodesize is determined */
 	if (block_count && block_count < min_dev_size) {
 		error("size %llu is too small to make a usable filesystem",

@@ -2149,7 +2149,12 @@ static int need_check(struct btrfs_root *root, struct ulist *roots)
 	struct rb_node *node;
 	struct ulist_node *u;
 
-	if (roots->nnodes == 1)
+	/*
+	 * @roots can be empty if it belongs to tree reloc tree
+	 * In that case, we should always check the leaf, as we can't use
+	 * the tree owner to ensure some other root will check it.
+	 */
+	if (roots->nnodes == 1 || roots->nnodes == 0)
 		return 1;
 
 	node = rb_first(&roots->root);
@@ -5869,8 +5874,9 @@ static int check_file_extent(struct btrfs_root *root, struct btrfs_key *fkey,
 		if (!repair || ret) {
 			err |= FILE_EXTENT_ERROR;
 			error(
-		"root %llu EXTENT_DATA[%llu %llu] interrupt, should start at %llu",
-			root->objectid, fkey->objectid, fkey->offset, *end);
+"root %llu EXTENT_DATA[%llu %llu] gap exists, expected: EXTENT_DATA[%llu %llu]",
+				root->objectid, fkey->objectid, fkey->offset,
+				fkey->objectid, *end);
 		}
 	}
 
@@ -6623,8 +6629,6 @@ out:
 	btrfs_release_path(&path);
 	return ret;
 }
-
-static int pin_metadata_blocks(struct btrfs_fs_info *fs_info);
 
 /*
  * Iterate all items in the tree and call check_inode_item() to check.
@@ -11698,16 +11702,12 @@ static int check_tree_block_ref(struct btrfs_root *root,
 	u32 nodesize = root->fs_info->nodesize;
 	u32 item_size;
 	u64 offset;
-	int tree_reloc_root = 0;
 	int found_ref = 0;
 	int err = 0;
 	int ret;
 	int strict = 1;
 	int parent = 0;
 
-	if (root->root_key.objectid == BTRFS_TREE_RELOC_OBJECTID &&
-	    btrfs_header_bytenr(root->node) == bytenr)
-		tree_reloc_root = 1;
 	btrfs_init_path(&path);
 	key.objectid = bytenr;
 	if (btrfs_fs_incompat(root->fs_info, SKINNY_METADATA))
@@ -11815,8 +11815,12 @@ static int check_tree_block_ref(struct btrfs_root *root,
 			/*
 			 * Backref of tree reloc root points to itself, no need
 			 * to check backref any more.
+			 *
+			 * This may be an error of loop backref, but extent tree
+			 * checker should have already handled it.
+			 * Here we only need to avoid infinite iteration.
 			 */
-			if (tree_reloc_root) {
+			if (offset == bytenr) {
 				found_ref = 1;
 			} else {
 				/*
@@ -11847,6 +11851,30 @@ static int check_tree_block_ref(struct btrfs_root *root,
 		ret = btrfs_search_slot(NULL, extent_root, &key, &path, 0, 0);
 		if (!ret)
 			found_ref = 1;
+	}
+	/*
+	 * Finally check SHARED BLOCK REF, any found will be good
+	 * Here we're not doing comprehensive extent backref checking,
+	 * only need to ensure there is some extent referring to this
+	 * tree block.
+	 */
+	if (!found_ref) {
+		btrfs_release_path(&path);
+		key.objectid = bytenr;
+		key.type = BTRFS_SHARED_BLOCK_REF_KEY;
+		key.offset = (u64)-1;
+
+		ret = btrfs_search_slot(NULL, extent_root, &key, &path, 0, 0);
+		if (ret < 0) {
+			err |= BACKREF_MISSING;
+			goto out;
+		}
+		ret = btrfs_previous_extent_item(extent_root, &path, bytenr);
+		if (ret) {
+			err |= BACKREF_MISSING;
+			goto out;
+		}
+		found_ref = 1;
 	}
 	if (!found_ref)
 		err |= BACKREF_MISSING;
@@ -12003,11 +12031,11 @@ static int check_extent_data_item(struct btrfs_root *root,
 	u64 disk_num_bytes;
 	u64 extent_num_bytes;
 	u64 extent_flags;
+	u64 offset;
 	u32 item_size;
 	unsigned long end;
 	unsigned long ptr;
 	int type;
-	u64 ref_root;
 	int found_dbackref = 0;
 	int slot = pathp->slots[0];
 	int err = 0;
@@ -12025,6 +12053,7 @@ static int check_extent_data_item(struct btrfs_root *root,
 	disk_bytenr = btrfs_file_extent_disk_bytenr(eb, fi);
 	disk_num_bytes = btrfs_file_extent_disk_num_bytes(eb, fi);
 	extent_num_bytes = btrfs_file_extent_num_bytes(eb, fi);
+	offset = btrfs_file_extent_offset(eb, fi);
 
 	/* Check unaligned disk_num_bytes and num_bytes */
 	if (!IS_ALIGNED(disk_num_bytes, root->fs_info->sectorsize)) {
@@ -12079,6 +12108,11 @@ static int check_extent_data_item(struct btrfs_root *root,
 	strict = should_check_extent_strictly(root, nrefs, -1);
 
 	while (ptr < end) {
+		u64 ref_root;
+		u64 ref_objectid;
+		u64 ref_offset;
+		bool match = false;
+
 		iref = (struct btrfs_extent_inline_ref *)ptr;
 		type = btrfs_extent_inline_ref_type(leaf, iref);
 		dref = (struct btrfs_extent_data_ref *)(&iref->offset);
@@ -12090,9 +12124,15 @@ static int check_extent_data_item(struct btrfs_root *root,
 		}
 		if (type == BTRFS_EXTENT_DATA_REF_KEY) {
 			ref_root = btrfs_extent_data_ref_root(leaf, dref);
-			if (ref_root == root->objectid)
+			ref_objectid = btrfs_extent_data_ref_objectid(leaf, dref);
+			ref_offset = btrfs_extent_data_ref_offset(leaf, dref);
+
+			if (ref_objectid == fi_key.objectid &&
+			    ref_offset == fi_key.offset - offset)
+				match = true;
+			if (ref_root == root->objectid && match)
 				found_dbackref = 1;
-			else if (!strict && owner == ref_root)
+			else if (!strict && owner == ref_root && match)
 				found_dbackref = 1;
 		} else if (type == BTRFS_SHARED_DATA_REF_KEY) {
 			found_dbackref = !check_tree_block_ref(root, NULL,
@@ -12112,7 +12152,7 @@ static int check_extent_data_item(struct btrfs_root *root,
 		dbref_key.objectid = btrfs_file_extent_disk_bytenr(eb, fi);
 		dbref_key.type = BTRFS_EXTENT_DATA_REF_KEY;
 		dbref_key.offset = hash_extent_data_ref(root->objectid,
-				fi_key.objectid, fi_key.offset);
+				fi_key.objectid, fi_key.offset - offset);
 
 		ret = btrfs_search_slot(NULL, root->fs_info->extent_root,
 					&dbref_key, &path, 0, 0);
@@ -12480,11 +12520,17 @@ static int check_extent_data_backref(struct btrfs_fs_info *fs_info,
 		 * Except normal disk bytenr and disk num bytes, we still
 		 * need to do extra check on dbackref offset as
 		 * dbackref offset = file_offset - file_extent_offset
+		 *
+		 * Also, we must check the leaf owner.
+		 * In case of shared tree blocks (snapshots) we can inherit
+		 * leaves from source snapshot.
+		 * In that case, reference from source snapshot should not
+		 * count.
 		 */
 		if (btrfs_file_extent_disk_bytenr(leaf, fi) == bytenr &&
 		    btrfs_file_extent_disk_num_bytes(leaf, fi) == len &&
 		    (u64)(key.offset - btrfs_file_extent_offset(leaf, fi)) ==
-		    offset)
+		    offset && btrfs_header_owner(leaf) == root_id)
 			found_count++;
 
 next:
@@ -13307,8 +13353,6 @@ out:
 	return err;
 }
 
-static int pin_metadata_blocks(struct btrfs_fs_info *fs_info);
-
 /*
  * Low memory usage version check_chunks_and_extents.
  */
@@ -13327,12 +13371,6 @@ static int check_chunks_and_extents_v2(struct btrfs_fs_info *fs_info)
 	root = fs_info->fs_root;
 
 	if (repair) {
-		/* pin every tree block to avoid extent overwrite */
-		ret = pin_metadata_blocks(fs_info);
-		if (ret) {
-			error("failed to pin metadata blocks");
-			return ret;
-		}
 		trans = btrfs_start_transaction(fs_info->extent_root, 1);
 		if (IS_ERR(trans)) {
 			error("failed to start transaction before check");
