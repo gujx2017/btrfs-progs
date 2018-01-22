@@ -2480,7 +2480,7 @@ static int walk_down_tree(struct btrfs_root *root, struct btrfs_path *path,
 		if (btrfs_is_leaf(next))
 			status = btrfs_check_leaf(root, NULL, next);
 		else
-			status = btrfs_check_node(root, NULL, next);
+			status = btrfs_check_node_v1(root, NULL, next);
 		if (status != BTRFS_TREE_BLOCK_CLEAN) {
 			free_extent_buffer(next);
 			err = -EIO;
@@ -2766,7 +2766,7 @@ static int walk_down_tree_v2(struct btrfs_trans_handle *trans,
 			break;
 		} else {
 			if (check || !check_all) {
-				ret = btrfs_check_node(root, NULL, cur);
+				ret = btrfs_check_node_v1(root, NULL, cur);
 				if (ret != BTRFS_TREE_BLOCK_CLEAN) {
 					err |= -EIO;
 					break;
@@ -2817,7 +2817,7 @@ static int walk_down_tree_v2(struct btrfs_trans_handle *trans,
 		if (btrfs_is_leaf(next))
 			status = btrfs_check_leaf(root, NULL, next);
 		else
-			status = btrfs_check_node(root, NULL, next);
+			status = btrfs_check_node_v1(root, NULL, next);
 		if (status != BTRFS_TREE_BLOCK_CLEAN) {
 			free_extent_buffer(next);
 			err |= -EIO;
@@ -4484,7 +4484,7 @@ static int check_fs_root(struct btrfs_root *root,
 	if (btrfs_is_leaf(root->node))
 		status = btrfs_check_leaf(root, NULL, root->node);
 	else
-		status = btrfs_check_node(root, NULL, root->node);
+		status = btrfs_check_node_v1(root, NULL, root->node);
 	if (status != BTRFS_TREE_BLOCK_CLEAN)
 		return -EIO;
 
@@ -7389,7 +7389,7 @@ static int check_block(struct btrfs_root *root,
 	if (btrfs_is_leaf(buf))
 		status = btrfs_check_leaf(root, &rec->parent_key, buf);
 	else
-		status = btrfs_check_node(root, &rec->parent_key, buf);
+		status = btrfs_check_node_v1(root, &rec->parent_key, buf);
 
 	if (status != BTRFS_TREE_BLOCK_CLEAN) {
 		if (repair)

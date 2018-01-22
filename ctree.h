@@ -367,6 +367,8 @@ struct btrfs_header {
 #define BTRFS_MAX_XATTR_SIZE(r)	(BTRFS_LEAF_DATA_SIZE(r) - \
 				 sizeof(struct btrfs_item) -\
 				 sizeof(struct btrfs_dir_item))
+#define BTRFS_FILE_EXTENT_INLINE_DATA_START \
+	(offsetof(struct btrfs_file_extent_item, disk_bytenr))
 
 
 /*
@@ -885,6 +887,7 @@ struct btrfs_balance_item {
 #define BTRFS_FILE_EXTENT_INLINE 0
 #define BTRFS_FILE_EXTENT_REG 1
 #define BTRFS_FILE_EXTENT_PREALLOC 2
+#define BTRFS_FILE_EXTENT_TYPES	2
 
 struct btrfs_file_extent_item {
 	/*
@@ -2559,7 +2562,7 @@ int btrfs_comp_cpu_keys(struct btrfs_key *k1, struct btrfs_key *k2);
 int btrfs_del_ptr(struct btrfs_root *root, struct btrfs_path *path,
 		int level, int slot);
 enum btrfs_tree_block_status
-btrfs_check_node(struct btrfs_root *root, struct btrfs_disk_key *parent_key,
+btrfs_check_node_v1(struct btrfs_root *root, struct btrfs_disk_key *parent_key,
 		 struct extent_buffer *buf);
 enum btrfs_tree_block_status
 btrfs_check_leaf(struct btrfs_root *root, struct btrfs_disk_key *parent_key,

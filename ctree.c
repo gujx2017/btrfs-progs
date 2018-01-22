@@ -418,7 +418,7 @@ static inline unsigned int leaf_data_end(struct btrfs_root *root,
 }
 
 enum btrfs_tree_block_status
-btrfs_check_node(struct btrfs_root *root, struct btrfs_disk_key *parent_key,
+btrfs_check_node_v1(struct btrfs_root *root, struct btrfs_disk_key *parent_key,
 		 struct extent_buffer *buf)
 {
 	int i;
@@ -569,7 +569,7 @@ static int noinline check_block(struct btrfs_root *root,
 	if (level == 0)
 		ret =  btrfs_check_leaf(root, key_ptr, path->nodes[0]);
 	else
-		ret = btrfs_check_node(root, key_ptr, path->nodes[level]);
+		ret = btrfs_check_node_v1(root, key_ptr, path->nodes[level]);
 	if (ret == BTRFS_TREE_BLOCK_CLEAN)
 		return 0;
 	return -EIO;
