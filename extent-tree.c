@@ -2992,7 +2992,7 @@ static int noinline walk_down_tree(struct btrfs_trans_handle *trans,
 			free_extent_buffer(next);
 			reada_walk_down(root, cur, path->slots[*level]);
 			mutex_unlock(&root->fs_info->fs_mutex);
-			next = read_tree_block(root, bytenr, blocksize,
+			next = read_tree_block(root, root->objectid, bytenr, blocksize,
 					       ptr_gen);
 			mutex_lock(&root->fs_info->fs_mutex);
 			if (!extent_buffer_uptodate(next)) {

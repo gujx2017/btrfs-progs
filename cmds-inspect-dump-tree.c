@@ -49,7 +49,7 @@ static void print_extents(struct btrfs_root *root, struct extent_buffer *eb)
 
 	nr = btrfs_header_nritems(eb);
 	for (i = 0; i < nr; i++) {
-		next = read_tree_block(root->fs_info,
+		next = read_tree_block(root->fs_info, root->objectid,
 				btrfs_node_blockptr(eb, i),
 				btrfs_node_ptr_generation(eb, i));
 		if (!extent_buffer_uptodate(next))
@@ -308,9 +308,15 @@ int cmd_inspect_dump_tree(int argc, char **argv)
 		goto out;
 	}
 
+	root = info->fs_root;
+        if (!root) {
+                error("unable to open %s", argv[optind]);
+                goto out;
+        }
+
 	if (block_only) {
 		root = info->chunk_root;
-		leaf = read_tree_block(info, block_only, 0);
+		leaf = read_tree_block(info, root->objectid, block_only, 0);
 		if (extent_buffer_uptodate(leaf) &&
 		    btrfs_header_level(leaf) != 0) {
 			free_extent_buffer(leaf);
@@ -318,7 +324,7 @@ int cmd_inspect_dump_tree(int argc, char **argv)
 		}
 
 		if (!leaf)
-			leaf = read_tree_block(info, block_only, 0);
+			leaf = read_tree_block(info, root->objectid, block_only, 0);
 		if (!extent_buffer_uptodate(leaf)) {
 			error("failed to read %llu",
 				(unsigned long long)block_only);
@@ -327,12 +333,6 @@ int cmd_inspect_dump_tree(int argc, char **argv)
 		btrfs_print_tree(root, leaf, 0);
 		free_extent_buffer(leaf);
 		goto close_root;
-	}
-
-	root = info->fs_root;
-	if (!root) {
-		error("unable to open %s", argv[optind]);
-		goto out;
 	}
 
 	if (!(extent_only || uuid_tree_only || tree_id)) {
@@ -438,7 +438,8 @@ again:
 
 			offset = btrfs_item_ptr_offset(leaf, slot);
 			read_extent_buffer(leaf, &ri, offset, sizeof(ri));
-			buf = read_tree_block(info, btrfs_root_bytenr(&ri), 0);
+			buf = read_tree_block(info, tree_root_scan->objectid,
+					btrfs_root_bytenr(&ri), 0);
 			if (!extent_buffer_uptodate(buf))
 				goto next;
 			if (tree_id && found_key.objectid != tree_id) {

@@ -300,8 +300,8 @@ int read_whole_eb(struct btrfs_fs_info *info, struct extent_buffer *eb, int mirr
 	return 0;
 }
 
-struct extent_buffer* read_tree_block(struct btrfs_fs_info *fs_info, u64 bytenr,
-		u64 parent_transid)
+struct extent_buffer* read_tree_block(struct btrfs_fs_info *fs_info,
+		u64 r_objectid, u64 bytenr, u64 parent_transid)
 {
 	int ret;
 	struct extent_buffer *eb;
@@ -495,7 +495,7 @@ static int find_and_setup_root(struct btrfs_root *tree_root,
 		return ret;
 
 	generation = btrfs_root_generation(&root->root_item);
-	root->node = read_tree_block(fs_info,
+	root->node = read_tree_block(fs_info, root->objectid,
 			btrfs_root_bytenr(&root->root_item), generation);
 	if (!extent_buffer_uptodate(root->node))
 		return -EIO;
@@ -521,7 +521,7 @@ static int find_and_setup_log_root(struct btrfs_root *tree_root,
 	btrfs_setup_root(log_root, fs_info,
 			 BTRFS_TREE_LOG_OBJECTID);
 
-	log_root->node = read_tree_block(fs_info, blocknr,
+	log_root->node = read_tree_block(fs_info, tree_root->objectid, blocknr,
 				     btrfs_super_generation(disk_super) + 1);
 
 	fs_info->log_root_tree = log_root;
@@ -607,7 +607,7 @@ out:
 		return ERR_PTR(ret);
 	}
 	generation = btrfs_root_generation(&root->root_item);
-	root->node = read_tree_block(fs_info,
+	root->node = read_tree_block(fs_info, root->objectid,
 			btrfs_root_bytenr(&root->root_item), generation);
 	if (!extent_buffer_uptodate(root->node)) {
 		free(root);
@@ -863,7 +863,8 @@ int btrfs_setup_all_roots(struct btrfs_fs_info *fs_info, u64 root_tree_bytenr,
 		generation = btrfs_backup_tree_root_gen(backup);
 	}
 
-	root->node = read_tree_block(fs_info, root_tree_bytenr, generation);
+	root->node = read_tree_block(fs_info, root->objectid,
+			root_tree_bytenr, generation);
 	if (!extent_buffer_uptodate(root->node)) {
 		fprintf(stderr, "Couldn't read tree root\n");
 		return -EIO;
@@ -1056,6 +1057,7 @@ int btrfs_setup_chunk_tree_and_device_map(struct btrfs_fs_info *fs_info,
 		generation = 0;
 
 	fs_info->chunk_root->node = read_tree_block(fs_info,
+					fs_info->chunk_root->objectid,
 						    chunk_root_bytenr,
 						    generation);
 	if (!extent_buffer_uptodate(fs_info->chunk_root->node)) {

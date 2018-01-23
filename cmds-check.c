@@ -2453,7 +2453,8 @@ static int walk_down_tree(struct btrfs_root *root, struct btrfs_path *path,
 		if (!next || !btrfs_buffer_uptodate(next, ptr_gen)) {
 			free_extent_buffer(next);
 			reada_walk_down(root, cur, path->slots[*level]);
-			next = read_tree_block(root->fs_info, bytenr, ptr_gen);
+			next = read_tree_block(root->fs_info, root->objectid,
+					       bytenr, ptr_gen);
 			if (!extent_buffer_uptodate(next)) {
 				struct btrfs_key node_key;
 
@@ -2794,7 +2795,8 @@ static int walk_down_tree_v2(struct btrfs_trans_handle *trans,
 		if (!next || !btrfs_buffer_uptodate(next, ptr_gen)) {
 			free_extent_buffer(next);
 			reada_walk_down(root, cur, path->slots[*level]);
-			next = read_tree_block(fs_info, bytenr, ptr_gen);
+			next = read_tree_block(fs_info, root->objectid,
+						bytenr, ptr_gen);
 			if (!extent_buffer_uptodate(next)) {
 				struct btrfs_key node_key;
 
@@ -9215,7 +9217,7 @@ static int run_next_block(struct btrfs_root *root,
 	}
 
 	/* fixme, get the real parent transid */
-	buf = read_tree_block(root->fs_info, bytenr, gen);
+	buf = read_tree_block(root->fs_info, root->objectid, bytenr, gen);
 	if (!extent_buffer_uptodate(buf)) {
 		record_bad_block_io(root->fs_info,
 				    extent_cache, bytenr, size);
@@ -11392,7 +11394,9 @@ static int deal_root_from_list(struct list_head *list,
 		rec = list_entry(list->next,
 				 struct root_item_record, list);
 		last = 0;
-		buf = read_tree_block(root->fs_info, rec->bytenr, 0);
+		buf = read_tree_block(root->fs_info,
+				      root->fs_info->tree_root->objectid,
+				      rec->bytenr, 0);
 		if (!extent_buffer_uptodate(buf)) {
 			free_extent_buffer(buf);
 			ret = -EIO;
@@ -12247,7 +12251,7 @@ static int query_tree_block_level(struct btrfs_fs_info *fs_info, u64 bytenr)
 	btrfs_release_path(&path);
 
 	/* Get level from tree block as an alternative source */
-	eb = read_tree_block(fs_info, bytenr, transid);
+	eb = read_tree_block(fs_info, 0, bytenr, transid);
 	if (!extent_buffer_uptodate(eb)) {
 		free_extent_buffer(eb);
 		return -EIO;
@@ -12300,7 +12304,7 @@ static int check_tree_block_backref(struct btrfs_fs_info *fs_info, u64 root_id,
 	}
 
 	/* Read out the tree block to get item/node key */
-	eb = read_tree_block(fs_info, bytenr, 0);
+	eb = read_tree_block(fs_info, root->objectid, bytenr, 0);
 	if (!extent_buffer_uptodate(eb)) {
 		err |= REFERENCER_MISSING;
 		free_extent_buffer(eb);
@@ -12401,7 +12405,7 @@ static int check_shared_block_backref(struct btrfs_fs_info *fs_info,
 	int found_parent = 0;
 	int i;
 
-	eb = read_tree_block(fs_info, parent, 0);
+	eb = read_tree_block(fs_info, 0, parent, 0);
 	if (!extent_buffer_uptodate(eb))
 		goto out;
 
@@ -12561,7 +12565,7 @@ static int check_shared_data_backref(struct btrfs_fs_info *fs_info,
 	int found_parent = 0;
 	int i;
 
-	eb = read_tree_block(fs_info, parent, 0);
+	eb = read_tree_block(fs_info, 0, parent, 0);
 	if (!extent_buffer_uptodate(eb))
 		goto out;
 
@@ -13578,7 +13582,9 @@ static int pin_down_tree_blocks(struct btrfs_fs_info *fs_info,
 			 * in, but for now this doesn't actually use the root so
 			 * just pass in extent_root.
 			 */
-			tmp = read_tree_block(fs_info, bytenr, 0);
+			tmp = read_tree_block(fs_info,
+					fs_info->extent_root->objectid,
+					bytenr, 0);
 			if (!extent_buffer_uptodate(tmp)) {
 				fprintf(stderr, "Error reading root block\n");
 				return -EIO;
@@ -13597,7 +13603,9 @@ static int pin_down_tree_blocks(struct btrfs_fs_info *fs_info,
 				continue;
 			}
 
-			tmp = read_tree_block(fs_info, bytenr, 0);
+			tmp = read_tree_block(fs_info,
+					fs_info->extent_root->objectid,
+					bytenr, 0);
 			if (!extent_buffer_uptodate(tmp)) {
 				fprintf(stderr, "Error reading tree block\n");
 				return -EIO;

@@ -649,7 +649,8 @@ struct extent_buffer *read_node_slot(struct btrfs_root *root,
 	if (level == 0)
 		return NULL;
 
-	return read_tree_block(root->fs_info, btrfs_node_blockptr(parent, slot),
+	return read_tree_block(root->fs_info, root->objectid,
+			btrfs_node_blockptr(parent, slot),
 		       btrfs_node_ptr_generation(parent, slot));
 }
 

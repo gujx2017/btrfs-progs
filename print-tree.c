@@ -1380,7 +1380,7 @@ void btrfs_print_tree(struct btrfs_root *root, struct extent_buffer *eb, int fol
 		return;
 
 	for (i = 0; i < nr; i++) {
-		next = read_tree_block(root->fs_info,
+		next = read_tree_block(root->fs_info, root->objectid,
 				btrfs_node_blockptr(eb, i),
 				btrfs_node_ptr_generation(eb, i));
 		if (!extent_buffer_uptodate(next)) {
