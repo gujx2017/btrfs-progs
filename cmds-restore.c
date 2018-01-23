@@ -231,7 +231,6 @@ static int next_leaf(struct btrfs_root *root, struct btrfs_path *path)
 	int offset = 1;
 	struct extent_buffer *c;
 	struct extent_buffer *next = NULL;
-	struct btrfs_fs_info *fs_info = root->fs_info;
 
 again:
 	for (; level < BTRFS_MAX_LEVEL; level++) {
@@ -261,7 +260,7 @@ again:
 		if (path->reada)
 			reada_for_search(root, path, level, slot, 0);
 
-		next = read_node_slot(fs_info, c, slot);
+		next = read_node_slot(root, c, slot);
 		if (extent_buffer_uptodate(next))
 			break;
 		offset++;
@@ -277,7 +276,7 @@ again:
 			break;
 		if (path->reada)
 			reada_for_search(root, path, level, 0, 0);
-		next = read_node_slot(fs_info, next, 0);
+		next = read_node_slot(root, next, 0);
 		if (!extent_buffer_uptodate(next))
 			goto again;
 	}
