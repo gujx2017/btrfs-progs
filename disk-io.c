@@ -33,90 +33,7 @@
 #include "utils.h"
 #include "print-tree.h"
 #include "rbtree-utils.h"
-
-/* specified errno for check_tree_block */
-#define BTRFS_BAD_BYTENR		(-1)
-#define BTRFS_BAD_FSID			(-2)
-#define BTRFS_BAD_LEVEL			(-3)
-#define BTRFS_BAD_NRITEMS		(-4)
-
-/* Calculate max possible nritems for a leaf/node */
-static u32 max_nritems(u8 level, u32 nodesize)
-{
-
-	if (level == 0)
-		return ((nodesize - sizeof(struct btrfs_header)) /
-			sizeof(struct btrfs_item));
-	return ((nodesize - sizeof(struct btrfs_header)) /
-		sizeof(struct btrfs_key_ptr));
-}
-
-static int check_tree_block(struct btrfs_fs_info *fs_info,
-			    struct extent_buffer *buf)
-{
-
-	struct btrfs_fs_devices *fs_devices;
-	u32 nodesize = fs_info->nodesize;
-	int ret = BTRFS_BAD_FSID;
-
-	if (buf->start != btrfs_header_bytenr(buf))
-		return BTRFS_BAD_BYTENR;
-	if (btrfs_header_level(buf) >= BTRFS_MAX_LEVEL)
-		return BTRFS_BAD_LEVEL;
-	if (btrfs_header_nritems(buf) > max_nritems(btrfs_header_level(buf),
-						    nodesize))
-		return BTRFS_BAD_NRITEMS;
-
-	/* Only leaf can be empty */
-	if (btrfs_header_nritems(buf) == 0 &&
-	    btrfs_header_level(buf) != 0)
-		return BTRFS_BAD_NRITEMS;
-
-	fs_devices = fs_info->fs_devices;
-	while (fs_devices) {
-		if (fs_info->ignore_fsid_mismatch ||
-		    !memcmp_extent_buffer(buf, fs_devices->fsid,
-					  btrfs_header_fsid(),
-					  BTRFS_FSID_SIZE)) {
-			ret = 0;
-			break;
-		}
-		fs_devices = fs_devices->seed;
-	}
-	return ret;
-}
-
-static void print_tree_block_error(struct btrfs_fs_info *fs_info,
-				struct extent_buffer *eb,
-				int err)
-{
-	char fs_uuid[BTRFS_UUID_UNPARSED_SIZE] = {'\0'};
-	char found_uuid[BTRFS_UUID_UNPARSED_SIZE] = {'\0'};
-	u8 buf[BTRFS_UUID_SIZE];
-
-	switch (err) {
-	case BTRFS_BAD_FSID:
-		read_extent_buffer(eb, buf, btrfs_header_fsid(),
-				   BTRFS_UUID_SIZE);
-		uuid_unparse(buf, found_uuid);
-		uuid_unparse(fs_info->fsid, fs_uuid);
-		fprintf(stderr, "fsid mismatch, want=%s, have=%s\n",
-			fs_uuid, found_uuid);
-		break;
-	case BTRFS_BAD_BYTENR:
-		fprintf(stderr, "bytenr mismatch, want=%llu, have=%llu\n",
-			eb->start, btrfs_header_bytenr(eb));
-		break;
-	case BTRFS_BAD_LEVEL:
-		fprintf(stderr, "bad level, %u > %u\n",
-			btrfs_header_level(eb), BTRFS_MAX_LEVEL);
-		break;
-	case BTRFS_BAD_NRITEMS:
-		fprintf(stderr, "invalid nr_items: %u\n",
-			btrfs_header_nritems(eb));
-		break;
-	}
-}
+#include "tree-checker.h"
 
 u32 btrfs_csum_data(char *data, u32 seed, size_t len)
 {
@@ -334,7 +251,7 @@ struct extent_buffer* read_tree_block(struct btrfs_fs_info *fs_info,
 	while (1) {
 		ret = read_whole_eb(fs_info, eb, mirror_num);
 		if (ret == 0 && csum_tree_block(fs_info, eb, 1) == 0 &&
-		    check_tree_block(fs_info, eb) == 0 &&
+		    btrfs_check_tree_block(fs_info, r_objectid, eb) == 0 &&
 		    verify_parent_transid(eb->tree, eb, parent_transid, ignore)
 		    == 0) {
 			if (eb->flags & EXTENT_BAD_TRANSID &&
@@ -346,18 +263,16 @@ struct extent_buffer* read_tree_block(struct btrfs_fs_info *fs_info,
 			btrfs_set_buffer_uptodate(eb);
 			return eb;
 		}
+
+		if (csum_tree_block(fs_info, eb, 1) != 0 &&
+				!fs_info->suppress_check_block_errors)
+			fprintf(stderr, "Csum didn't match\n");
+
 		if (ignore) {
-			if (check_tree_block(fs_info, eb)) {
-				if (!fs_info->suppress_check_block_errors)
-					print_tree_block_error(fs_info, eb,
-						check_tree_block(fs_info, eb));
-			} else {
-				if (!fs_info->suppress_check_block_errors)
-					fprintf(stderr, "Csum didn't match\n");
-			}
 			ret = -EIO;
 			break;
 		}
+
 		num_copies = btrfs_num_copies(fs_info, eb->start, eb->len);
 		if (num_copies == 1) {
 			ignore = 1;
@@ -446,9 +361,7 @@ int write_tree_block(struct btrfs_trans_handle *trans,
 		     struct btrfs_fs_info *fs_info,
 		     struct extent_buffer *eb)
 {
-	if (check_tree_block(fs_info, eb)) {
-		print_tree_block_error(fs_info, eb,
-				check_tree_block(fs_info, eb));
+	if (btrfs_check_tree_block(fs_info, 0, eb)) {
 		BUG();
 	}
 

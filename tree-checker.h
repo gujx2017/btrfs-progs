@@ -36,5 +36,7 @@ int btrfs_check_leaf_relaxed(struct btrfs_fs_info *fs_info, u64 r_objectid,
 			     struct extent_buffer *leaf);
 int btrfs_check_node(struct btrfs_fs_info *fs_info, u64 r_objectid,
 		     struct extent_buffer *node);
+int btrfs_check_tree_block(struct btrfs_fs_info *fs_info, u64 r_objectid,
+		struct extent_buffer *eb);
 
 #endif

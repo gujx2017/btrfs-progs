@@ -27,11 +27,32 @@
  */
 
 #include <stdarg.h>
+#include <uuid/uuid.h>
 #include "ctree.h"
 #include "tree-checker.h"
 #include "disk-io.h"
 #include "messages.h"
+#include "common-defs.h"
+#include "extent_io.h"
+#include "volumes.h"
 //#include "compression.h"
+
+/* specified errno for check_tree_block */
+#define BTRFS_BAD_BYTENR		(-1)
+#define BTRFS_BAD_FSID			(-2)
+#define BTRFS_BAD_LEVEL			(-3)
+#define BTRFS_BAD_NRITEMS		(-4)
+
+/* Calculate max possible nritems for a leaf/node */
+static u32 max_nritems(u8 level, u32 nodesize)
+{
+
+	if (level == 0)
+		return ((nodesize - sizeof(struct btrfs_header)) /
+			sizeof(struct btrfs_item));
+	return ((nodesize - sizeof(struct btrfs_header)) /
+		sizeof(struct btrfs_key_ptr));
+}
 
 /*
  * Error message should follow the following format:
@@ -380,6 +401,81 @@ static int check_leaf(struct btrfs_fs_info *fs_info, u64 r_objectid,
 	return 0;
 }
 
+static void print_tree_block_error(struct btrfs_fs_info *fs_info,
+				struct extent_buffer *eb,
+				int err)
+{
+	char fs_uuid[BTRFS_UUID_UNPARSED_SIZE] = {'\0'};
+	char found_uuid[BTRFS_UUID_UNPARSED_SIZE] = {'\0'};
+	u8 buf[BTRFS_UUID_SIZE];
+
+	switch (err) {
+	case BTRFS_BAD_FSID:
+		read_extent_buffer(eb, buf, btrfs_header_fsid(),
+				   BTRFS_UUID_SIZE);
+		uuid_unparse(buf, found_uuid);
+		uuid_unparse(fs_info->fsid, fs_uuid);
+		fprintf(stderr, "fsid mismatch, want=%s, have=%s\n",
+			fs_uuid, found_uuid);
+		break;
+	case BTRFS_BAD_BYTENR:
+		fprintf(stderr, "bytenr mismatch, want=%llu, have=%llu\n",
+			eb->start, btrfs_header_bytenr(eb));
+		break;
+	case BTRFS_BAD_LEVEL:
+		fprintf(stderr, "bad level, %u > %u\n",
+			btrfs_header_level(eb), BTRFS_MAX_LEVEL);
+		break;
+	case BTRFS_BAD_NRITEMS:
+		fprintf(stderr, "invalid nr_items: %u\n",
+			btrfs_header_nritems(eb));
+		break;
+	}
+}
+int btrfs_check_tree_block_common(struct btrfs_fs_info *fs_info,
+				u64 r_objectid, struct extent_buffer *buf)
+{
+
+	struct btrfs_fs_devices *fs_devices;
+	u32 nodesize = fs_info->nodesize;
+	int ret = BTRFS_BAD_FSID;
+
+	if (buf->start != btrfs_header_bytenr(buf)) {
+		ret = BTRFS_BAD_BYTENR;
+		goto out;
+	}
+	if (btrfs_header_level(buf) >= BTRFS_MAX_LEVEL) {
+		ret = BTRFS_BAD_LEVEL;
+		goto out;
+	}
+	if (btrfs_header_nritems(buf) > max_nritems(btrfs_header_level(buf),
+						    nodesize)) {
+		ret = BTRFS_BAD_NRITEMS;
+		goto out;
+	}
+
+	/* Only leaf can be empty */
+	if (btrfs_header_nritems(buf) == 0 &&
+	    btrfs_header_level(buf) != 0)
+		ret = BTRFS_BAD_NRITEMS;
+
+	fs_devices = fs_info->fs_devices;
+	while (fs_devices) {
+		if (fs_info->ignore_fsid_mismatch ||
+		    !memcmp_extent_buffer(buf, fs_devices->fsid,
+					  btrfs_header_fsid(),
+					  BTRFS_FSID_SIZE)) {
+			ret = 0;
+			break;
+		}
+		fs_devices = fs_devices->seed;
+	}
+out:
+	if (ret !=0 && !fs_info->suppress_check_block_errors)
+		print_tree_block_error(fs_info, buf, ret);
+	return ret;
+}
+
 int btrfs_check_leaf_full(struct btrfs_fs_info *fs_info, u64 r_objectid,
 			  struct extent_buffer *leaf)
 {
@@ -440,6 +536,22 @@ int btrfs_check_node(struct btrfs_fs_info *fs_info, u64 r_objectid,
 			ret = -EUCLEAN;
 			goto out;
 		}
+	}
+out:
+	return ret;
+}
+
+int btrfs_check_tree_block(struct btrfs_fs_info *fs_info, u64 r_objectid,
+		struct extent_buffer *eb)
+{
+	int ret;
+	ret = btrfs_check_tree_block_common(fs_info, r_objectid, eb);
+	if (ret != 0)
+		goto out;
+	if (btrfs_header_level(eb) == 0) {
+		ret = btrfs_check_leaf_full(fs_info, r_objectid, eb);
+	} else {
+		ret = btrfs_check_node(fs_info, r_objectid, eb);
 	}
 out:
 	return ret;
