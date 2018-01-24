@@ -496,14 +496,13 @@ int btrfs_check_node(struct btrfs_fs_info *fs_info, u64 r_objectid,
 	u64 bytenr;
 	int ret = 0;
 
-	if (nr == 0 || nr > 0) {
-			//BTRFS_NODEPTRS_PER_BLOCK(root)) {
+	if (nr == 0 || nr > BTRFS_NODEPTRS_PER_BLOCK(fs_info)) {
 		if (!fs_info->suppress_check_block_errors)
 			warning(
 	"corrupt node: root=%llu block=%llu, nritems too %s, have %lu expect range [1,%u]",
 				r_objectid, node->start,
 				nr == 0 ? "small" : "large", nr,
-				0);//BTRFS_NODEPTRS_PER_BLOCK(root));
+				BTRFS_NODEPTRS_PER_BLOCK(fs_info));
 		return -EUCLEAN;
 	}
 

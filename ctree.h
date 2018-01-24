@@ -356,9 +356,8 @@ struct btrfs_header {
 	u8 level;
 } __attribute__ ((__packed__));
 
-#define BTRFS_NODEPTRS_PER_BLOCK(r) (((r)->fs_info->nodesize - \
-			        sizeof(struct btrfs_header)) / \
-			        sizeof(struct btrfs_key_ptr))
+#define BTRFS_NODEPTRS_PER_BLOCK(fs_info) \
+	(BTRFS_LEAF_DATA_SIZE(fs_info) / sizeof(struct btrfs_key_ptr))
 #define __BTRFS_LEAF_DATA_SIZE(bs) ((bs) - sizeof(struct btrfs_header))
 #define BTRFS_LEAF_DATA_SIZE(fs_info)\
 	(__BTRFS_LEAF_DATA_SIZE(fs_info->nodesize))
