@@ -346,7 +346,7 @@ static int check_leaf(struct btrfs_fs_info *fs_info, u64 r_objectid,
 		 * front.
 		 */
 		if (slot == 0)
-			item_end_expected = 0;//item_end_expected = BTRFS_LEAF_DATA_SIZE(root);
+			item_end_expected = BTRFS_LEAF_DATA_SIZE(fs_info);
 		else
 			item_end_expected = btrfs_item_offset_nr(leaf,
 								 slot - 1);
@@ -363,12 +363,11 @@ static int check_leaf(struct btrfs_fs_info *fs_info, u64 r_objectid,
 		 * just in case all the items are consistent to each other, but
 		 * all point outside of the leaf.
 		 */
-		if (btrfs_item_end_nr(leaf, slot) > 0) {
-//		    BTRFS_LEAF_DATA_SIZE(root)) {
+		if (btrfs_item_end_nr(leaf, slot) > BTRFS_LEAF_DATA_SIZE(fs_info)) {
 			generic_err(fs_info, r_objectid, leaf, slot,
 			"slot end outside of leaf, have %u expect range [0, %u]",
-				btrfs_item_end_nr(leaf, slot),0);
-				//BTRFS_LEAF_DATA_SIZE(root));
+				btrfs_item_end_nr(leaf, slot),
+				BTRFS_LEAF_DATA_SIZE(fs_info));
 			return -EUCLEAN;
 		}
 

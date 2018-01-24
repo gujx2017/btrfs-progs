@@ -360,13 +360,16 @@ struct btrfs_header {
 			        sizeof(struct btrfs_header)) / \
 			        sizeof(struct btrfs_key_ptr))
 #define __BTRFS_LEAF_DATA_SIZE(bs) ((bs) - sizeof(struct btrfs_header))
-#define BTRFS_LEAF_DATA_SIZE(r) (__BTRFS_LEAF_DATA_SIZE(r->fs_info->nodesize))
-#define BTRFS_MAX_INLINE_DATA_SIZE(r) (BTRFS_LEAF_DATA_SIZE(r) - \
-					sizeof(struct btrfs_item) - \
-					sizeof(struct btrfs_file_extent_item))
-#define BTRFS_MAX_XATTR_SIZE(r)	(BTRFS_LEAF_DATA_SIZE(r) - \
-				 sizeof(struct btrfs_item) -\
-				 sizeof(struct btrfs_dir_item))
+#define BTRFS_LEAF_DATA_SIZE(fs_info)\
+	(__BTRFS_LEAF_DATA_SIZE(fs_info->nodesize))
+#define BTRFS_MAX_INLINE_DATA_SIZE(r) \
+		(BTRFS_LEAF_DATA_SIZE(r->fs_info) - \
+		sizeof(struct btrfs_item) - \
+		sizeof(struct btrfs_file_extent_item))
+#define BTRFS_MAX_XATTR_SIZE(r)	\
+		(BTRFS_LEAF_DATA_SIZE(r->fs_info) - \
+		 sizeof(struct btrfs_item) -\
+		 sizeof(struct btrfs_dir_item))
 #define BTRFS_FILE_EXTENT_INLINE_DATA_START \
 	(offsetof(struct btrfs_file_extent_item, disk_bytenr))
 
@@ -601,8 +604,9 @@ struct btrfs_extent_item_v0 {
 	__le32 refs;
 } __attribute__ ((__packed__));
 
-#define BTRFS_MAX_EXTENT_ITEM_SIZE(r) ((BTRFS_LEAF_DATA_SIZE(r) >> 4) - \
-					sizeof(struct btrfs_item))
+#define BTRFS_MAX_EXTENT_ITEM_SIZE(r) \
+		((BTRFS_LEAF_DATA_SIZE(r->fs_info) >> 4) - \
+		sizeof(struct btrfs_item))
 #define BTRFS_MAX_EXTENT_SIZE		SZ_128M
 
 #define BTRFS_EXTENT_FLAG_DATA		(1ULL << 0)
