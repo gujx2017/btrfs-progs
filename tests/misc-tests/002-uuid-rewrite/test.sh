@@ -25,7 +25,7 @@ test_uuid_random()
 
 	run_check $SUDO_HELPER $EXEC/mkfs.btrfs -f \
 		--uuid $origuuid \
-		--rootdir $TOP/Documentation \
+		--rootdir /lib/modules/`uname -r`/ \
 		$TEST_DEV
 	run_check $EXEC/btrfs inspect-internal dump-super "$TEST_DEV"
 	currentfsid=$(run_check_stdout $EXEC/btrfstune -f -u $TEST_DEV | \
@@ -47,7 +47,7 @@ test_uuid_user()
 
 	run_check $SUDO_HELPER $EXEC/mkfs.btrfs -f \
 		--uuid $origuuid \
-		--rootdir $TOP/Documentation \
+		--rootdir /lib/modules/`uname -r`/ \
 		$TEST_DEV
 	run_check $EXEC/btrfs inspect-internal dump-super "$TEST_DEV"
 	run_check $EXEC/btrfstune -f -U $newuuid \

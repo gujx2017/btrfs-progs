@@ -16,7 +16,7 @@ test_mkfs_with_size() {
 	run_check truncate -s$size $TEST_DEV
 	imgsize=$(run_check_stdout stat --format=%s $TEST_DEV)
 	run_check $SUDO_HELPER $EXEC/mkfs.btrfs -f \
-		--rootdir $EXEC/Documentation \
+		--rootdir /lib/modules/`uname -r`/ \
 		$TEST_DEV
 	tmp=$(run_check_stdout stat --format=%s $TEST_DEV)
 	if ! [ "$imgsize" = "$tmp" ]; then

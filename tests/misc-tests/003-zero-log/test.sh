@@ -27,7 +27,7 @@ test_zero_log()
 {
 	# FIXME: we need an image with existing log_root
 	run_check $SUDO_HELPER $EXEC/mkfs.btrfs -f \
-		--rootdir $TOP/Documentation \
+		--rootdir /lib/modules/`uname -r`/ \
 		$TEST_DEV
 	run_check $EXEC/btrfs inspect-internal dump-super $TEST_DEV
 	if [ "$1" = 'standalone' ]; then
