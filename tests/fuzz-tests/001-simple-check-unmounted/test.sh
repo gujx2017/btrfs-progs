@@ -12,7 +12,7 @@ check_image() {
 	local image
 
 	image=$1
-	run_mayfail $TOP/btrfs check "$image"
+	run_mayfail $EXEC/btrfs check "$image"
 }
 
 check_all_images $TOP/tests/fuzz-tests/images

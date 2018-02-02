@@ -9,31 +9,31 @@ check_prereq btrfs
 
 prepare_test_dev
 
-run_check "$TOP/mkfs.btrfs" -f "$TEST_DEV"
+run_check "$EXEC/mkfs.btrfs" -f "$TEST_DEV"
 run_check_mount_test_dev
 run_check $SUDO_HELPER chmod a+rw "$TEST_MNT"
 cd "$TEST_MNT"
 
-run_check "$TOP/btrfs" subvolume create sub
-run_check "$TOP/btrfs" subvolume create sub/subsub
+run_check "$EXEC/btrfs" subvolume create sub
+run_check "$EXEC/btrfs" subvolume create sub/subsub
 run_check mkdir dir
 run_check touch file1
 run_check touch dir/file2
 run_check touch sub/file3
 
-id1=$(run_check_stdout "$TOP/btrfs" inspect-internal rootid .) \
+id1=$(run_check_stdout "$EXEC/btrfs" inspect-internal rootid .) \
 	|| { echo $id1; exit 1; }
-id2=$(run_check_stdout "$TOP/btrfs" inspect-internal rootid sub) \
+id2=$(run_check_stdout "$EXEC/btrfs" inspect-internal rootid sub) \
 	|| { echo $id2; exit 1; }
-id3=$(run_check_stdout "$TOP/btrfs" inspect-internal rootid sub/subsub) \
+id3=$(run_check_stdout "$EXEC/btrfs" inspect-internal rootid sub/subsub) \
 	|| { echo $id3; exit 1; }
-id4=$(run_check_stdout "$TOP/btrfs" inspect-internal rootid dir) \
+id4=$(run_check_stdout "$EXEC/btrfs" inspect-internal rootid dir) \
 	|| { echo $id4; exit 1; }
-id5=$(run_check_stdout "$TOP/btrfs" inspect-internal rootid file1) \
+id5=$(run_check_stdout "$EXEC/btrfs" inspect-internal rootid file1) \
 	|| { echo $id5; exit 1; }
-id6=$(run_check_stdout "$TOP/btrfs" inspect-internal rootid dir/file2) \
+id6=$(run_check_stdout "$EXEC/btrfs" inspect-internal rootid dir/file2) \
 	|| { echo $id6; exit 1; }
-id7=$(run_check_stdout "$TOP/btrfs" inspect-internal rootid sub/file3) \
+id7=$(run_check_stdout "$EXEC/btrfs" inspect-internal rootid sub/file3) \
 	|| { echo $id7; exit 1; }
 
 if ! ([ $id1 -ne $id2 ] && [ $id1 -ne $id3 ] && [ $id2 -ne $id3 ]); then
@@ -49,9 +49,9 @@ if ! ([ $id2 -eq $id7 ]); then
 fi
 
 run_mustfail "should fail for non existent file" \
-	"$TOP/btrfs" inspect-internal rootid no_such_file
+	"$EXEC/btrfs" inspect-internal rootid no_such_file
 run_mustfail "should fail for non-btrfs filesystem" \
-	"$TOP/btrfs" inspect-internal rootid /dev/null
+	"$EXEC/btrfs" inspect-internal rootid /dev/null
 
 cd ..
 run_check_umount_test_dev

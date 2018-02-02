@@ -290,8 +290,12 @@ run_mustfail_stdout()
 
 check_prereq()
 {
-	if ! [ -f "$TOP/$1" ]; then
-		_fail "Failed prerequisites: $1";
+	if [ "$1" = "btrfs-corrupt-block" -o "$1" = "fssum" ]; then
+		if ! [ -f "$TOP/$1" ]; then
+			_fail "Failed prerequisites: $TOP/$1";
+		fi
+	elif ! [ -f "$EXEC/$1" ]; then
+		_fail "Failed prerequisites: $EXEC/$1";
 	fi
 }
 
@@ -309,11 +313,11 @@ check_image()
 
 	image=$1
 	echo "testing image $(basename $image)" >> "$RESULTS"
-	"$TOP/btrfs" check "$image" >> "$RESULTS" 2>&1
+	"$EXEC/btrfs" check "$image" >> "$RESULTS" 2>&1
 	[ $? -eq 0 ] && _fail "btrfs check should have detected corruption"
 
-	run_check "$TOP/btrfs" check --repair "$image"
-	run_check "$TOP/btrfs" check "$image"
+	run_check "$EXEC/btrfs" check --repair "$image"
+	run_check "$EXEC/btrfs" check "$image"
 }
 
 # Extract a usable image from packed formats
@@ -358,7 +362,7 @@ extract_image()
 
 	if ! [ -f "$image.restored" ]; then
 		echo "restoring image $(basename $image)" >> "$RESULTS"
-		"$TOP/btrfs-image" -r "$image" "$image.restored" \
+		"$EXEC/btrfs-image" -r "$image" "$image.restored" \
 			&>> "$RESULTS" \
 			|| _fail "failed to restore image $image" >&2
 	fi

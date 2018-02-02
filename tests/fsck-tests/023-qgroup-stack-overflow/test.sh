@@ -11,7 +11,7 @@ check_prereq btrfs
 
 check_image()
 {
-	run_check "$TOP/btrfs" check "$1"
+	run_check "$EXEC/btrfs" check "$1"
 }
 
 check_all_images

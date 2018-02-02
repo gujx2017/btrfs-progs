@@ -13,7 +13,7 @@ check_image() {
 	local image
 
 	image=$1
-	run_check "$TOP/btrfs" check "$image"
+	run_check "$EXEC/btrfs" check "$image"
 }
 
 check_all_images

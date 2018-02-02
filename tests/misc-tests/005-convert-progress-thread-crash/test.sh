@@ -11,5 +11,5 @@ prepare_test_dev
 for ((i = 0; i < 20; i++)); do
 	echo "loop $i" >>$RESULTS
 	mkfs.ext4 -F "$TEST_DEV" &>>$RESULTS || _not_run "mkfs.ext4 failed"
-	run_check $TOP/btrfs-convert "$TEST_DEV"
+	run_check $EXEC/btrfs-convert "$TEST_DEV"
 done

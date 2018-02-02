@@ -19,14 +19,14 @@ convert_test_do_convert "" 4096
 run_check_mount_test_dev
 
 # Now the fs is converted, balance it so later rollback should fail
-run_check $SUDO_HELPER "$TOP/btrfs" balance start --full-balance "$TEST_MNT"
+run_check $SUDO_HELPER "$EXEC/btrfs" balance start --full-balance "$TEST_MNT"
 run_check_umount_test_dev
 
 # rollback should fail
-run_mustfail "rollback fs after balance" "$TOP/btrfs-convert" -r "$TEST_DEV"
+run_mustfail "rollback fs after balance" "$EXEC/btrfs-convert" -r "$TEST_DEV"
 
 # Ensure the fs and convert image can pass the check
-run_check "$TOP/btrfs" check "$TEST_DEV"
+run_check "$EXEC/btrfs" check "$TEST_DEV"
 
 run_check_mount_test_dev
 run_check $SUDO_HELPER e2fsck -fn "$TEST_MNT/ext2_saved/image"

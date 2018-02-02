@@ -14,11 +14,11 @@ check_all_images
 image=$(extract_image "./dev_and_super_mismatch_unaligned.raw.xz")
 
 # detect and fix
-run_check "$TOP/btrfs" rescue fix-device-size "$image"
+run_check "$EXEC/btrfs" rescue fix-device-size "$image"
 # no problem found
-run_check "$TOP/btrfs" rescue fix-device-size "$image"
+run_check "$EXEC/btrfs" rescue fix-device-size "$image"
 # check if fix-device-size worked
-run_check "$TOP/btrfs" check "$image"
+run_check "$EXEC/btrfs" check "$image"
 # mount test
 run_check_mount_test_dev
 run_check_umount_test_dev

@@ -30,9 +30,9 @@ echo 0 | run_check $SUDO_HELPER tee $rot
 run_check cat $rot
 
 # test
-run_check_stdout $SUDO_HELPER $TOP/mkfs.btrfs -f $@ $dmdev |
+run_check_stdout $SUDO_HELPER $EXEC/mkfs.btrfs -f $@ $dmdev |
 	grep -q 'SSD detected:.*yes' || _fail 'SSD not detected'
-run_check $SUDO_HELPER $TOP/btrfs inspect-internal dump-super $dmdev
+run_check $SUDO_HELPER $EXEC/btrfs inspect-internal dump-super $dmdev
 
 # cleanup
 run_check $SUDO_HELPER dmsetup remove $dmname

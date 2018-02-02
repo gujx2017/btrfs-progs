@@ -11,7 +11,7 @@ check_image() {
 
 	image=$1
 	run_check cp "$image" "$image".scratch
-	run_mayfail $TOP/btrfs rescue chunk-recover -y -v "$image".scratch
+	run_mayfail $EXEC/btrfs rescue chunk-recover -y -v "$image".scratch
 	rm -- "$image".scratch
 }
 

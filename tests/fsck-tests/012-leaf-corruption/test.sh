@@ -40,7 +40,7 @@ generate_leaf_corrupt_no_data_ext()
 	echo "generating leaf_corrupt_no_data_ext.btrfs-image" >> "$RESULTS"
 	tar --no-same-owner -xJf ./no_data_extent.tar.xz || \
 		_fail "failed to extract leaf_corrupt_no_data_ext.btrfs-image"
-	"$TOP/btrfs-image" -r test.img.btrfs-image "$dest" || \
+	"$EXEC/btrfs-image" -r test.img.btrfs-image "$dest" || \
 		_fail "failed to extract leaf_corrupt_no_data_ext.btrfs-image"
 
 	# leaf at 4206592 and 20905984 contains no regular data

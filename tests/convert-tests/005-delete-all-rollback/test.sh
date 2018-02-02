@@ -44,7 +44,7 @@ do_test() {
 	# ext2_saved/image must not be deleted
 	run_mayfail $SUDO_HELPER find "$TEST_MNT"/ -mindepth 1 -path '*ext2_saved' -prune -o -exec rm -vrf "{}" \;
 	cd "$here"
-	run_check "$TOP/btrfs" filesystem sync "$TEST_MNT"
+	run_check "$EXEC/btrfs" filesystem sync "$TEST_MNT"
 	run_check_umount_test_dev
 	convert_test_post_rollback ext4
 

@@ -12,28 +12,28 @@ get_log_root()
 	local image
 
 	image="$1"
-	$TOP/btrfs inspect-internal dump-super "$image" | \
+	$EXEC/btrfs inspect-internal dump-super "$image" | \
 		grep '^log_root\>' | awk '{print $2}'
 }
 get_log_root_level() {
 	local image
 
 	image="$1"
-	$TOP/btrfs inspect-internal dump-super "$image" | \
+	$EXEC/btrfs inspect-internal dump-super "$image" | \
 		grep '^log_root_level' | awk '{print $2}'
 }
 
 test_zero_log()
 {
 	# FIXME: we need an image with existing log_root
-	run_check $SUDO_HELPER $TOP/mkfs.btrfs -f \
+	run_check $SUDO_HELPER $EXEC/mkfs.btrfs -f \
 		--rootdir $TOP/Documentation \
 		$TEST_DEV
-	run_check $TOP/btrfs inspect-internal dump-super $TEST_DEV
+	run_check $EXEC/btrfs inspect-internal dump-super $TEST_DEV
 	if [ "$1" = 'standalone' ]; then
-		run_check $TOP/btrfs rescue zero-log $TEST_DEV
+		run_check $EXEC/btrfs rescue zero-log $TEST_DEV
 	else
-		run_check $TOP/btrfs-zero-log $TEST_DEV
+		run_check $EXEC/btrfs-zero-log $TEST_DEV
 	fi
 	log_root=$(get_log_root $TEST_DEV)
 	log_root_level=$(get_log_root $TEST_DEV)
@@ -43,8 +43,8 @@ test_zero_log()
 	if [ "$log_root_level" != 0 ]; then
 		_fail "FAIL: log_root_level not reset"
 	fi
-	run_check $TOP/btrfs inspect-internal dump-super $TEST_DEV
-	run_check $SUDO_HELPER $TOP/btrfs check $TEST_DEV
+	run_check $EXEC/btrfs inspect-internal dump-super $TEST_DEV
+	run_check $SUDO_HELPER $EXEC/btrfs check $TEST_DEV
 }
 
 test_zero_log standalone

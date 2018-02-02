@@ -10,10 +10,10 @@ setup_root_helper
 
 test_do_mkfs()
 {
-	run_check $SUDO_HELPER $TOP/mkfs.btrfs -f $@ ${loopdevs[@]}
-	run_check $SUDO_HELPER $TOP/btrfs inspect-internal dump-super $dev1
-	run_check $SUDO_HELPER $TOP/btrfs check $dev1
-	run_check $SUDO_HELPER $TOP/btrfs filesystem show
+	run_check $SUDO_HELPER $EXEC/mkfs.btrfs -f $@ ${loopdevs[@]}
+	run_check $SUDO_HELPER $EXEC/btrfs inspect-internal dump-super $dev1
+	run_check $SUDO_HELPER $EXEC/btrfs check $dev1
+	run_check $SUDO_HELPER $EXEC/btrfs filesystem show
 }
 
 test_wipefs()
@@ -22,19 +22,19 @@ test_wipefs()
 	run_check $SUDO_HELPER losetup -d $devtodel
 	unset loopdevs[3]
 	run_check $SUDO_HELPER losetup --all
-	run_check $TOP/btrfs filesystem show
+	run_check $EXEC/btrfs filesystem show
 }
 test_delete_missing()
 {
 	run_check_mount_test_dev -o degraded
-	run_check $SUDO_HELPER $TOP/btrfs filesystem show $TEST_MNT
-	run_check $SUDO_HELPER $TOP/btrfs device delete missing $TEST_MNT
-	run_check $SUDO_HELPER $TOP/btrfs filesystem show $TEST_MNT
+	run_check $SUDO_HELPER $EXEC/btrfs filesystem show $TEST_MNT
+	run_check $SUDO_HELPER $EXEC/btrfs device delete missing $TEST_MNT
+	run_check $SUDO_HELPER $EXEC/btrfs filesystem show $TEST_MNT
 	run_check_umount_test_dev
 
 	run_check_mount_test_dev
 	local out
-	out="$(run_check_stdout $SUDO_HELPER $TOP/btrfs filesystem show $TEST_MNT)"
+	out="$(run_check_stdout $SUDO_HELPER $EXEC/btrfs filesystem show $TEST_MNT)"
 	if echo "$out" | grep -q -- "$devtodel"; then
 		_fail "device $devtodel not deleted"
 	fi

@@ -18,5 +18,5 @@ for bs in 1024 2048; do
 		count=1 seek=1024 > /dev/null 2>&1
 
 	run_check_umount_test_dev
-	run_mustfail "$bs block converted" "$TOP/btrfs-convert" "$TEST_DEV"
+	run_mustfail "$bs block converted" "$EXEC/btrfs-convert" "$TEST_DEV"
 done

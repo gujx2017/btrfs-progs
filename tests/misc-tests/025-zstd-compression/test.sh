@@ -13,7 +13,7 @@ check_dump_tree() {
 	local image=$1
 	local string=$2
 
-	run_check_stdout "$TOP/btrfs" inspect-internal dump-tree "$image" \
+	run_check_stdout "$EXEC/btrfs" inspect-internal dump-tree "$image" \
 		| grep -q "$string" \
 		|| _fail "btrfs inspect-internal dump-tree didn't print $string"
 }
@@ -24,13 +24,13 @@ check_dump_tree "$image" "extent compression 2 (lzo)"
 check_dump_tree "$image" "extent compression 3 (zstd)"
 
 # Check that the filesystem has incompat COMPRESS_ZSTD
-run_check_stdout "$TOP/btrfs" inspect-internal dump-super -f "$image" \
+run_check_stdout "$EXEC/btrfs" inspect-internal dump-super -f "$image" \
 	| grep -q COMPRESS_ZSTD \
 	|| _fail "btrfs inspect-internal dump-super no incompat COMPRESS_ZSTD"
 
 # Create a temporary directory and restore the filesystem
 restore_tmp=$(mktemp --tmpdir -d btrfs-progs-022-zstd-compression.XXXXXXXXXX)
-run_check "$TOP/btrfs" restore "$image" "$restore_tmp"
+run_check "$EXEC/btrfs" restore "$image" "$restore_tmp"
 
 # Expect 3 files
 num_files=$(ls -1 "$restore_tmp" | wc -l)

@@ -5,6 +5,10 @@
 LANG=C
 SCRIPT_DIR=$(dirname $(readlink -f "$0"))
 TOP=$(readlink -f "$SCRIPT_DIR/../")
+EXEC=$TOP
+if [ ! -f $TOP/btrfs ]; then
+        EXEC=$(dirname `which btrfs`)
+fi
 TEST_DEV=${TEST_DEV:-}
 RESULTS="$TOP/tests/misc-tests-results.txt"
 IMAGE="$TOP/tests/test.img"
@@ -16,6 +20,7 @@ export RESULTS
 export LANG
 export TEST_DEV
 export IMAGE
+export EXEC
 
 rm -f "$RESULTS"
 

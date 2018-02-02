@@ -8,6 +8,6 @@ check_prereq btrfs
 
 image=$(extract_image "./default_case.img.xz")
 
-run_mustfail "dir_item hash mismatch not found" "$TOP/btrfs" check "$image"
+run_mustfail "dir_item hash mismatch not found" "$EXEC/btrfs" check "$image"
 
 rm -f "$image"

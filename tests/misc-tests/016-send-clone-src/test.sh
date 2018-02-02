@@ -11,27 +11,27 @@ check_prereq btrfs
 setup_root_helper
 
 prepare_test_dev
-run_check "$TOP/mkfs.btrfs" -f "$TEST_DEV"
+run_check "$EXEC/mkfs.btrfs" -f "$TEST_DEV"
 run_check_mount_test_dev
 
 here=`pwd`
 cd "$TEST_MNT" || _fail "cannot chdir to TEST_MNT"
 
-run_check $SUDO_HELPER $TOP/btrfs subvolume create subv-parent1
+run_check $SUDO_HELPER $EXEC/btrfs subvolume create subv-parent1
 for i in 1 2 3; do
 	run_check $SUDO_HELPER dd if=/dev/zero of=subv-parent1/file1_$i bs=1M count=1
-	run_check $SUDO_HELPER $TOP/btrfs subvolume snapshot -r subv-parent1 subv-snap1_$i
+	run_check $SUDO_HELPER $EXEC/btrfs subvolume snapshot -r subv-parent1 subv-snap1_$i
 done
 
-run_check $SUDO_HELPER $TOP/btrfs subvolume create subv-parent2
+run_check $SUDO_HELPER $EXEC/btrfs subvolume create subv-parent2
 for i in 1 2 3; do
 	run_check $SUDO_HELPER dd if=/dev/zero of=subv-parent2/file2_$i bs=1M count=1
-	run_check $SUDO_HELPER $TOP/btrfs subvolume snapshot -r subv-parent2 subv-snap2_$i
+	run_check $SUDO_HELPER $EXEC/btrfs subvolume snapshot -r subv-parent2 subv-snap2_$i
 done
 
 truncate -s0 "$here"/send-stream.img
 chmod a+w "$here"/send-stream.img
-run_check $SUDO_HELPER $TOP/btrfs send -f "$here"/send-stream.img \
+run_check $SUDO_HELPER $EXEC/btrfs send -f "$here"/send-stream.img \
 	-c subv-snap1_1 -c subv-snap2_1 subv-snap1_[23] subv-snap2_[23]
 
 image=$(extract_image "$here"/multi-clone-src-v4.8.2.stream.xz)

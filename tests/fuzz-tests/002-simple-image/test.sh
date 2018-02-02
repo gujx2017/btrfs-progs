@@ -13,7 +13,7 @@ check_image() {
 
 	image=$1
 	truncate -s0 target
-	run_mayfail $TOP/btrfs-image "$image" target
+	run_mayfail $EXEC/btrfs-image "$image" target
 	truncate -s0 target
 }
 

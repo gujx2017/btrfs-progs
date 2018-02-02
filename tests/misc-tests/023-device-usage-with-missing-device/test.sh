@@ -12,12 +12,12 @@ setup_root_helper
 test_run()
 {
 	# empty filesystem, with enough redundancy so degraded mount works
-	run_check $SUDO_HELPER "$TOP/mkfs.btrfs" -f -d raid1 -m raid1 $dev1 $dev2
+	run_check $SUDO_HELPER "$EXEC/mkfs.btrfs" -f -d raid1 -m raid1 $dev1 $dev2
 
 	TEST_DEV="$dev1"
 	run_check_mount_test_dev
-	run_check $SUDO_HELPER "$TOP/btrfs" filesystem usage "$TEST_MNT"
-	run_check_stdout $SUDO_HELPER "$TOP/btrfs" device usage "$TEST_MNT" | \
+	run_check $SUDO_HELPER "$EXEC/btrfs" filesystem usage "$TEST_MNT"
+	run_check_stdout $SUDO_HELPER "$EXEC/btrfs" device usage "$TEST_MNT" | \
 		grep -q "slack.*16\\.00EiB" && _fail
 	run_check_umount_test_dev
 
@@ -26,8 +26,8 @@ test_run()
 	unset loopdevs[2]
 
 	run_check_mount_test_dev -o degraded,ro
-	run_check $SUDO_HELPER "$TOP/btrfs" filesystem usage "$TEST_MNT"
-	run_check_stdout $SUDO_HELPER "$TOP/btrfs" device usage "$TEST_MNT" | \
+	run_check $SUDO_HELPER "$EXEC/btrfs" filesystem usage "$TEST_MNT"
+	run_check_stdout $SUDO_HELPER "$EXEC/btrfs" device usage "$TEST_MNT" | \
 		grep -q "slack.*16\\.00EiB" && _fail
 	run_check_umount_test_dev
 }

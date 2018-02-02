@@ -9,7 +9,7 @@ check_prereq btrfs
 
 prepare_test_dev
 
-run_check "$TOP/mkfs.btrfs" -f "$TEST_DEV"
+run_check "$EXEC/mkfs.btrfs" -f "$TEST_DEV"
 run_check_mount_test_dev
 run_check $SUDO_HELPER chmod a+rw "$TEST_MNT"
 
@@ -18,9 +18,9 @@ touch "$TEST_MNT/|5gp!"
 
 run_check_umount_test_dev
 
-run_check $SUDO_HELPER "$TOP/btrfs-image" -ss "$TEST_DEV" img
-run_check $SUDO_HELPER "$TOP/btrfs-image" -r img img.restored
-run_check_stdout $SUDO_HELPER "$TOP/btrfs" inspect-internal dump-tree img.restored > img.dump
+run_check $SUDO_HELPER "$EXEC/btrfs-image" -ss "$TEST_DEV" img
+run_check $SUDO_HELPER "$EXEC/btrfs-image" -r img img.restored
+run_check_stdout $SUDO_HELPER "$EXEC/btrfs" inspect-internal dump-tree img.restored > img.dump
 
 ch7f=$(echo -en '\x7f')
 if grep -q "$ch7f" img.dump; then

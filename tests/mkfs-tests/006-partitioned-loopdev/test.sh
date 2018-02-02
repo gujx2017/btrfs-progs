@@ -22,8 +22,8 @@ base=$(basename $loopdev)
 
 # expect partitions named like loop0p1 etc
 for looppart in $(ls /dev/$base?*); do
-	run_check $SUDO_HELPER $TOP/mkfs.btrfs -f $looppart
-	run_check $SUDO_HELPER $TOP/btrfs inspect-internal dump-super $looppart
+	run_check $SUDO_HELPER $EXEC/mkfs.btrfs -f $looppart
+	run_check $SUDO_HELPER $EXEC/btrfs inspect-internal dump-super $looppart
 done
 
 # cleanup

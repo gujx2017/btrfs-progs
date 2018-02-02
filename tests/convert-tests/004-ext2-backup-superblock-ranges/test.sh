@@ -24,16 +24,16 @@ prepare_test_dev
 function check_image() {
 	TEST_DEV="$1"
 	run_check e2fsck -n -f "$TEST_DEV"
-	run_check "$TOP/btrfs-convert" "$TEST_DEV"
-	run_check "$TOP/btrfs" check "$TEST_DEV"
-	run_check "$TOP/btrfs" inspect-internal dump-super "$TEST_DEV"
+	run_check "$EXEC/btrfs-convert" "$TEST_DEV"
+	run_check "$EXEC/btrfs" check "$TEST_DEV"
+	run_check "$EXEC/btrfs" inspect-internal dump-super "$TEST_DEV"
 
 	run_check_mount_test_dev
 	run_check $SUDO_HELPER e2fsck -n -f "$TEST_MNT/ext2_saved/image"
 	run_check $SUDO_HELPER umount "$TEST_MNT"
 
-	run_check "$TOP/btrfs" check "$TEST_DEV"
-	run_check "$TOP/btrfs-convert" -r "$TEST_DEV"
+	run_check "$EXEC/btrfs" check "$TEST_DEV"
+	run_check "$EXEC/btrfs-convert" -r "$TEST_DEV"
 	run_check e2fsck -n -f "$TEST_DEV"
 
 	rm -f "$TEST_DEV"

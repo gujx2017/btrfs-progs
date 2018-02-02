@@ -10,7 +10,7 @@ check_image() {
 	local image
 
 	image=$1
-	run_mayfail $TOP/btrfs inspect-internal tree-stats "$image"
+	run_mayfail $EXEC/btrfs inspect-internal tree-stats "$image"
 }
 
 check_all_images $TOP/tests/fuzz-tests/images

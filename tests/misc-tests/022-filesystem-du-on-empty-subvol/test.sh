@@ -9,16 +9,16 @@ check_prereq btrfs
 setup_root_helper
 prepare_test_dev
 
-run_check "$TOP/mkfs.btrfs" -f "$TEST_DEV"
+run_check "$EXEC/mkfs.btrfs" -f "$TEST_DEV"
 run_check_mount_test_dev
 
 cd "$TEST_MNT"
 
-run_check $SUDO_HELPER "$TOP/btrfs" subvolume create test1
-run_check $SUDO_HELPER "$TOP/btrfs" subvolume create test1/test2
-run_check $SUDO_HELPER "$TOP/btrfs" subvolume snapshot test1 test1-snap
-run_check $SUDO_HELPER "$TOP/btrfs" filesystem du -s test1
-run_check_stdout $SUDO_HELPER "$TOP/btrfs" filesystem du -s test1-snap | \
+run_check $SUDO_HELPER "$EXEC/btrfs" subvolume create test1
+run_check $SUDO_HELPER "$EXEC/btrfs" subvolume create test1/test2
+run_check $SUDO_HELPER "$EXEC/btrfs" subvolume snapshot test1 test1-snap
+run_check $SUDO_HELPER "$EXEC/btrfs" filesystem du -s test1
+run_check_stdout $SUDO_HELPER "$EXEC/btrfs" filesystem du -s test1-snap | \
 	grep -q "ERROR:.*ioctl" && _fail "empty subvolume not handled"
 
 cd ..

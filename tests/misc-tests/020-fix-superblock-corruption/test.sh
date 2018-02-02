@@ -14,21 +14,21 @@ FIRST_SUPERBLOCK_OFFSET=65536
 
 test_superblock_restore()
 {
-	run_check $SUDO_HELPER "$TOP/mkfs.btrfs" -f "$TEST_DEV"
+	run_check $SUDO_HELPER "$EXEC/mkfs.btrfs" -f "$TEST_DEV"
 
 	# Corrupt superblock checksum
 	run_check $SUDO_HELPER dd if=/dev/zero of="$TEST_DEV" \
 	seek="$FIRST_SUPERBLOCK_OFFSET" bs=1 count=4 conv=notrunc
 
 	# Run btrfs check to detect corruption
-	run_mayfail "$TOP/btrfs" check "$TEST_DEV" && \
+	run_mayfail "$EXEC/btrfs" check "$TEST_DEV" && \
 		_fail "btrfs check should detect corruption"
 
 	# Copy backup superblock to primary
-	run_check "$TOP/btrfs-select-super" -s 1 "$TEST_DEV"
+	run_check "$EXEC/btrfs-select-super" -s 1 "$TEST_DEV"
 
 	# Perform btrfs check
-	run_check "$TOP/btrfs" check "$TEST_DEV"
+	run_check "$EXEC/btrfs" check "$TEST_DEV"
 }
 
 test_superblock_restore

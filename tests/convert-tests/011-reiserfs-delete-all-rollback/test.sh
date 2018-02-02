@@ -47,7 +47,7 @@ do_test() {
 	# reiserfs_saved/image must not be deleted
 	run_mayfail $SUDO_HELPER find "$TEST_MNT"/ -mindepth 1 -path '*reiserfs_saved' -prune -o -exec rm -vrf "{}" \;
 	cd "$here"
-	run_check "$TOP/btrfs" filesystem sync "$TEST_MNT"
+	run_check "$EXEC/btrfs" filesystem sync "$TEST_MNT"
 	run_check_umount_test_dev
 	convert_test_post_rollback reiserfs
 

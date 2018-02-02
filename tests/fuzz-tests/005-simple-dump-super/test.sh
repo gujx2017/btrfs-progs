@@ -10,8 +10,8 @@ check_image() {
 	local image
 
 	image=$1
-	run_mayfail $TOP/btrfs inspect-internal dump-super "$image"
-	run_mayfail $TOP/btrfs inspect-internal dump-super -Ffa "$image"
+	run_mayfail $EXEC/btrfs inspect-internal dump-super "$image"
+	run_mayfail $EXEC/btrfs inspect-internal dump-super -Ffa "$image"
 }
 
 check_all_images $TOP/tests/fuzz-tests/images
