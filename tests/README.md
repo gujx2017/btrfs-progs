@@ -48,6 +48,26 @@ $ TEST=001\* ./fsck-tests.sh
 will run the first test in fsck-tests subdirectory.
 
 
+## Package testsuit
+
+The tests can be export as a tests.tar.gz into path given. Use:
+
+```shell
+$ make EXPORT=PATH package
+```
+
+where `PATH` is a directory where tests.tar.gz be genereated.
+Here comes handy:
+
+```shell
+$ make EXPORT=/home/user/ package
+$ make EXPORT=../../dir/ package
+```
+
+And, after decompress tests.tar.gz, test can be run selectively
+from `tests/` directory introduced above.
+
+
 ## Test structure
 
 *tests/fsck-tests/:*
